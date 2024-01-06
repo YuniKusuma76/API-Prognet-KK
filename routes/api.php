@@ -20,12 +20,14 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::post('/register', [AuthApiController::class, 'register']);
-Route::post('/login', [AuthApiController::class, 'login']);
+Route::post('register', [AuthApiController::class, 'register']);
+Route::post('login', [AuthApiController::class, 'login']);
 
-// Route yang membutuhkan otentikasi
-Route::middleware(['auth:sanctum'])->group(function () {
-    Route::post('/logout', [AuthApiController::class, 'logout']);
+// Route::get('user', function (Request $request) {
+//     return $request->user();
+// });
+Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+    return $request->user();
 });
 
 // Route::get('agama', [AgamaApiController::class, 'index']);
