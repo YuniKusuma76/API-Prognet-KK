@@ -5,61 +5,57 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 
 class AuthApiController extends Controller
 {
     public function register(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        $dataUser = new User();
+
+        $rules = [
             'name' => 'required',
             'email' => 'required|email',
             'password' => 'required',
             'confirm_password' => 'required|same:password'
-        ]);
+        ];
 
+        $validator = Validator::make($request->all(), $rules);
         if ($validator->fails()) {
             return response()->json([
-                'success' => false,
-                'message' => 'Ada Kesalahan pada Data Inputan',
+                'status' => false,
+                'message' => 'Gagal melakukan registrasi',
                 'data' => $validator->errors()
             ]);
         }
 
-        $input = $request->all();
-        $input['password'] = bcrypt($input['password']);
+        $dataUser->name = $request->name;
+        $dataUser->email = $request->email;
+        $dataUser->password = $request->password;
 
-        $dataUser = User::create($input);
-
-        $success['name'] = $dataUser->name;
-        $success['email'] = $dataUser->email;
+        $dataUser['password'] = bcrypt($dataUser['password']);
+        $post = $dataUser->save();
 
         return response()->json([
-            'success' => true,
-            'message' => 'Sukses melakukan registrasi',
-            'data' => $success
+            'status' => true,
+            'message' => 'Sukses melakukan registrasi'
         ]);
     }
 
-    public function login(Request $request)
+    public function login()
     {
-        if (Auth::attempt(['email' => $request->email, 'password' => $request->password])) {
-            $dataAuth = Auth::user();
-            $success['token'] = $dataAuth->createToken('auth_token')->plainTextToken;
-            $success['name'] = $dataAuth->name;
-            $success['email'] = $dataAuth->email;
+        validator(request()->all(), [
+            'email' => ['required', 'email'],
+            'password' => ['required']
+        ])->validate();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Sukses melakukan login',
-                'data' => $success
-            ]);
-        } else {
-            return response()->json([
-                'success' => false,
-                'message' => 'Ada kesalahan pada E-mail dan Password',
-                'data' => null
-            ]);
+        $user = User::where('email', request('email'))->first();
+
+        if (Hash::check(request('password'), $user->getAuthPassword())) {
+            return [
+                'token' => $user->createToken(time())->plainTextToken
+            ];
         }
     }
 }
