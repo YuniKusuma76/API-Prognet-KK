@@ -7,10 +7,14 @@ use App\Http\Controllers\HubungankkApiController;
 use App\Http\Controllers\KkApiController;
 use App\Http\Controllers\PendudukApiController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
 
-Route::post('/register', [AuthApiController::class, 'register']);
-Route::post('/login', [AuthApiController::class, 'login']);
-Route::get('/user', 'UserController')->middleware('auth:sanctum');
+Route::post('register', [AuthApiController::class, 'register']);
+Route::post('login', [AuthApiController::class, 'login']);
+
+Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+    return $request->user();
+});
 
 Route::apiResource('agama', AgamaApiController::class);
 

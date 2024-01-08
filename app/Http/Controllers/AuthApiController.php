@@ -2,60 +2,63 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
 use Illuminate\Http\Request;
+use App\Models\User;
+use Validator;
 use Auth;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
 
 class AuthApiController extends Controller
 {
     public function register(Request $request)
     {
-        $dataUser = new User();
-
-        $rules = [
+        $validator = Validator::make($request->all(), [
             'name' => 'required',
             'email' => 'required|email',
             'password' => 'required',
             'confirm_password' => 'required|same:password'
-        ];
+        ]);
 
-        $validator = Validator::make($request->all(), $rules);
         if ($validator->fails()) {
             return response()->json([
-                'status' => false,
-                'message' => 'Gagal melakukan registrasi',
+                'success' => false,
+                'message' => 'Ada kesalahan',
                 'data' => $validator->errors()
             ]);
         }
 
-        $dataUser->name = $request->name;
-        $dataUser->email = $request->email;
-        $dataUser->password = $request->password;
+        $input = $request->all();
+        $input['password'] = bcrypt($input['password']);
+        $user = User::create($input);
 
-        $dataUser['password'] = bcrypt($dataUser['password']);
-        $post = $dataUser->save();
+        $success['name'] = $user->name;
+        $success['email'] = $user->email;
 
         return response()->json([
-            'status' => true,
-            'message' => 'Sukses melakukan registrasi'
+            'success' => true,
+            'message' => 'Sukses register',
+            'data' => $success
         ]);
     }
 
-    public function login()
+    public function login(Request $request)
     {
-        validator(request()->all(), [
-            'email' => ['required', 'email'],
-            'password' => ['required']
-        ])->validate();
+        if (Auth::attempt(['email' => $request->email, 'password' => $request->password])) {
+            $auth = Auth::user();
+            $success['token'] = $auth->createToken('auth_token')->plainTextToken;
+            $success['name'] = $auth->name;
+            $success['email'] = $auth->email;
 
-        $user = User::where('email', request('email'))->first();
-
-        if (Hash::check(request('password'), $user->getAuthPassword())) {
-            return [
-                'token' => $user->createToken(time())->plainTextToken
-            ];
+            return response()->json([
+                'success' => true,
+                'message' => 'Login sukses',
+                'data' => $success
+            ]);
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cek email dan password lagi',
+                'data' => null
+            ]);
         }
     }
 }
